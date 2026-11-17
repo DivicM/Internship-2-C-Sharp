@@ -1,4 +1,6 @@
-﻿var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
+﻿using System.Globalization;
+
+var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
 {
      { 1, ("Ivo", "Ivić", new DateTime(2000, 5, 1), new()
         {
@@ -29,7 +31,7 @@ static double LateFee(int daysLate)
     return daysLate * 0.5;
 }
 
-void addMember()
+void AddMember()
 {
     int ID = ++lastMemberID;
 
@@ -60,9 +62,84 @@ void addMember()
     Members.Add(ID, (userName, userSurname, date, new()));
 
     Console.WriteLine($"Dodan korisnik {userName} {userSurname} rođen {date:dd:MM:yyyy}");
-    
+}
+void RemoveMemberByID()
+{
+    Console.WriteLine("Unesi ID korisnika:");
+    if(!int.TryParse(Console.ReadLine(), out int id) || !Members.ContainsKey(id))
+    {
+        Console.WriteLine("Član s tim ID-jem ne postoji");
+        return;
+    }
+
+    ConfirmAndRemove(id);
+
 
 }
+void RemoveMemberByName()
+{
+    Console.WriteLine("Unesite ime: ");
+    string name = Console.ReadLine()?.Trim() ?? "";
+
+    Console.WriteLine("Unesite prezime: ");
+    string surname = Console.ReadLine()?.Trim() ?? "";
+    int id=0;
+    foreach(var m in Members)
+    {
+        if(m.Value.Name.ToLower()==name.ToLower() && m.Value.Surname.ToLower() == surname.ToLower())
+        {
+            id = m.Key;
+            break;
+        }
+    }
+    if (id == 0)
+    {
+        Console.WriteLine("Korisnik s tim imenom i prezimenom nije pronađen");
+        return;
+    }
+
+    ConfirmAndRemove(id);
+
+}
+
+void ConfirmAndRemove(int ID)
+{
+    var member = Members[ID];
+
+    Console.WriteLine($"Jeste li sigurni da zelite obristai {member.Name} {member.Surname} iz baze? DA/NE");
+    string input = Console.ReadLine().Trim();
+    if (input.ToLower() == "da" )
+    {
+        Members.Remove(ID);
+        Console.WriteLine($"Korisnik {member.Name} {member.Surname} uklonjen.");
+    }
+    else
+    {
+        Console.WriteLine("Brisanje otkazano");
+    }
+
+}
+void RemoveMember()
+{
+    Console.WriteLine("Brisanje korisnika po: 1 - ID-ju\n 2 - Imenu i prezimenu\n 0 - Povratak");
+    string input = Console.ReadLine().Trim();
+
+    switch (input)
+    {
+        case "1":
+            RemoveMemberByID();
+            break;
+        case "2":
+            RemoveMemberByName();
+            return;
+        case "0":
+            return;
+
+        default: Console.WriteLine("Neispravan unos"); break;
+    }
+
+}
+
 
 void MembersMenu()
 {
@@ -72,16 +149,18 @@ void MembersMenu()
     switch (answer.Trim())
     {
         case "1":
-            addMember();
+            AddMember();
             break;
         case "2":
-
+            RemoveMember();
+            break;
         case "3":
 
         case "4":
 
         case "0":
             return;
+        default: Console.WriteLine("Neispravan unos"); break;
     }
         
 
