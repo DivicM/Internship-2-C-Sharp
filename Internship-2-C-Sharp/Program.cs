@@ -6,7 +6,7 @@ string firstPick=Console.ReadLine();
 
 static int DaysLate(DateTime dateBorrowed, DateTime? dateReturned)
 {
-    DateTime DueDate = dateBorrowed.Date.AddDays(14);
+    DateTime DueDate = dateBorrowed.Date.AddDays(21);
     DateTime endDate = (dateReturned ?? DateTime.Today).Date;
 
     return Math.Max(0, (endDate - DueDate).Days);
