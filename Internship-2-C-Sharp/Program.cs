@@ -1,8 +1,4 @@
-﻿using System.Globalization;
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.VisualBasic;
-
-var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
+﻿    var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
 {
      { 1, ("Ivo", "Ivić", new DateTime(2000, 5, 1), new()
         {
@@ -215,20 +211,128 @@ void EditMember()
 
 }
 
+static int CalculateAge(DateTime dateOfBirth)
+{
+    DateTime today = DateTime.Today;
+    int age = today.Year - dateOfBirth.Year;
+
+    if (dateOfBirth.Date > today.AddYears(-age))
+        age--;
+
+    return age;
+}
+
 void PrintAllMembers()
 {
     if (Members.Count == 0)
     {
         Console.WriteLine("Nema članova.");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
         return;
     }
-    Console.WriteLine("[ID] - [Prezime] - [Ime] - [Godine] - [Broj posudbi]");
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
     foreach (var (id, member) in Members)
     {
-        Console.WriteLine($"{id} - {member.Surname} {member.Name}, {DateTime.Today.Year - member.DateOfBirth.Year}, {member.Loans.Count}");
+        Console.WriteLine($"{id,-5}{member.Surname,-15}{member.Name,-15}{CalculateAge(member.DateOfBirth),-8}{member.Loans.Count}");
     }
     Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
     Console.ReadKey();
+}
+
+void PrintUnder18()
+{
+    int count = 0;
+    foreach (var (id, member) in Members)
+    {
+        if (CalculateAge(member.DateOfBirth) < 18)
+        {
+            count++;
+        }
+    }
+
+    if (count == 0)
+    {
+        Console.WriteLine("Nema korisnika koji su mlađi od 18");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
+        return;
+    }
+    
+    Console.WriteLine("Članovi ispod 18 godina.");
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+
+    foreach (var (id, member) in Members)
+    {
+        if(CalculateAge(member.DateOfBirth)<18)
+        {
+            Console.WriteLine($"{id,-5}{member.Surname,-15}{member.Name,-15}{CalculateAge(member.DateOfBirth),-8}{member.Loans.Count}");
+        }
+    }
+    Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+    Console.ReadKey();
+}
+
+void PrintHaveBorrowed()
+{
+    int count = 0;
+    foreach (var (id, member) in Members)
+    {
+        if (member.Loans.Count > 0)
+        {
+            count++;
+        }
+    }
+    if (count == 0)
+    {
+        Console.WriteLine("Nema korisnika koji su posudili barem jednu knjigu");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
+        return;
+    }
+    Console.WriteLine("Članovi koji imaju barem jednu posuđenu knjigu");
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+    foreach (var (id, member) in Members)
+    {
+        if (member.Loans.Count() != 0)
+        {
+            Console.WriteLine($"{id,-5}{member.Surname,-15}{member.Name,-15}{CalculateAge(member.DateOfBirth),-8}{member.Loans.Count}");
+        }
+    }
+    Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+    Console.ReadKey();
+}
+
+void PrintAll()
+{
+    Console.Clear();
+    Console.WriteLine("1 - Ispis svih članova\n2 - Ispis svih mlađih od 18\n3 - Ispis svih koji imaju barem jednu nevraćenu knjigu\n0 - Povratak");
+    string answer = Console.ReadLine();
+    while (string.IsNullOrWhiteSpace(answer))
+    {
+        Console.WriteLine("Neispravan unos!");
+        return;
+    }
+   
+    switch(answer)
+    {
+        case "1":
+            PrintAllMembers();
+            break;
+        case "2":
+            PrintUnder18();
+            break;
+        case "3":
+            PrintHaveBorrowed();
+            break;
+        case "0":
+            return;
+        default: Console.WriteLine("Neispravan unos"); break;
+
+    }
 }
 
 void MembersMenu()
@@ -249,7 +353,7 @@ void MembersMenu()
             EditMember();
             break;
         case "4":
-            PrintAllMembers();
+            PrintAll();
             break;
         case "0":
             return;
