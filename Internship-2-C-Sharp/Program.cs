@@ -1,4 +1,6 @@
 ﻿using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.VisualBasic;
 
 var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
 {
@@ -62,6 +64,8 @@ void AddMember()
     Members.Add(ID, (userName, userSurname, date, new()));
 
     Console.WriteLine($"Dodan korisnik {userName} {userSurname} rođen {date:dd:MM:yyyy}");
+    Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+    Console.ReadKey();
 }
 void RemoveMemberByID()
 {
@@ -112,16 +116,21 @@ void ConfirmAndRemove(int ID)
     {
         Members.Remove(ID);
         Console.WriteLine($"Korisnik {member.Name} {member.Surname} uklonjen.");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
     }
     else
     {
         Console.WriteLine("Brisanje otkazano");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
     }
+    
 
 }
 void RemoveMember()
 {
-    Console.WriteLine("Brisanje korisnika po: 1 - ID-ju\n 2 - Imenu i prezimenu\n 0 - Povratak");
+    Console.WriteLine("Brisanje korisnika po:\n1 - ID-ju\n2 - Imenu i prezimenu\n0 - Povratak");
     string input = Console.ReadLine().Trim();
 
     switch (input)
@@ -131,7 +140,7 @@ void RemoveMember()
             break;
         case "2":
             RemoveMemberByName();
-            return;
+            break;
         case "0":
             return;
 
@@ -140,9 +149,91 @@ void RemoveMember()
 
 }
 
+void EditMember()
+{
+    Console.WriteLine("Unesi ID korisnika");
+    if(!int.TryParse(Console.ReadLine(), out int id) || !Members.ContainsKey(id))
+    {
+        Console.WriteLine("Krivi unos ID-ja");
+        return;
+    }
+    var member = Members[id];
+
+    Console.WriteLine($"Uređuješ: {member.Name} {member.Surname}, rođen {member.DateOfBirth:dd.MM.yyyy}");
+    Console.WriteLine("Želite li uređivati: 1 - Ime\n2 - Prezime\n3 - Datum rođenja\n0 - Odustani");
+    string answer=Console.ReadLine().Trim();
+
+    switch (answer)
+    {
+        case "1":
+            Console.WriteLine("Unesi novo ime: ");
+            string name = Console.ReadLine().Trim();
+            while(string.IsNullOrWhiteSpace(name))
+            {
+                Console.WriteLine("Nije moguće unijeti prazan string");
+                name = Console.ReadLine().Trim();
+            }
+            member.Name = name;
+            Console.WriteLine($"Ime promijenjeno u {member.Name}");
+            break;
+        case "2":
+            Console.WriteLine("Unesi novo prezime: ");
+            string surname = Console.ReadLine().Trim();
+            while (string.IsNullOrWhiteSpace(surname))
+            {
+                Console.WriteLine("Nije moguće unijeti prazan string");
+                surname = Console.ReadLine().Trim();
+            }
+
+            member.Surname = surname;
+            Console.WriteLine($"Prezime promijenjeno u {member.Surname}");
+            break;
+        case "3":
+            Console.WriteLine("Unesi novi datum rođenja: (DD.MM.YYYY)");
+            DateTime birth;
+            while (!DateTime.TryParse(Console.ReadLine().Trim(), out birth) || birth > DateTime.Today)
+            {
+                Console.WriteLine("Neispravan unos!");   
+            }
+            member.DateOfBirth= birth;
+            Console.WriteLine($"Datum promijenjen u {member.DateOfBirth:dd:MM:yyyy}");
+            break;
+
+        case "0":
+            Console.WriteLine("Nema nikakve izmjene");
+            return;
+        default:
+            Console.WriteLine("Neispravan unos"); return;
+
+    }
+
+    Members[id] = member;
+    Console.WriteLine($"{member.Name} {member.Surname}, rođen {member.DateOfBirth:dd.MM.yyyy}");
+    Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+    Console.ReadKey();
+
+
+}
+
+void PrintAllMembers()
+{
+    if (Members.Count == 0)
+    {
+        Console.WriteLine("Nema članova.");
+        return;
+    }
+    Console.WriteLine("[ID] - [Prezime] - [Ime] - [Godine] - [Broj posudbi]");
+    foreach (var (id, member) in Members)
+    {
+        Console.WriteLine($"{id} - {member.Surname} {member.Name}, {DateTime.Today.Year - member.DateOfBirth.Year}, {member.Loans.Count}");
+    }
+    Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+    Console.ReadKey();
+}
 
 void MembersMenu()
 {
+    Console.Clear();
     Console.WriteLine("1 - Unos novog člana\n2 - Brisanje Člana\n3 - Uređivanje člana\n4 - Pregled svih članova\n0 - Povratak na galvni izbornik");
     string answer = Console.ReadLine();
 
@@ -155,9 +246,11 @@ void MembersMenu()
             RemoveMember();
             break;
         case "3":
-
+            EditMember();
+            break;
         case "4":
-
+            PrintAllMembers();
+            break;
         case "0":
             return;
         default: Console.WriteLine("Neispravan unos"); break;
@@ -169,13 +262,15 @@ void MembersMenu()
 
 while(true)
 {
-    Console.WriteLine("1 - Članovi\n 2 - Posudbe\n 0 - Izlaz iz aplikacije");
+    Console.Clear();
+    Console.WriteLine("1 - Članovi\n2 - Posudbe\n0 - Izlaz iz aplikacije");
     string answer = Console.ReadLine();
-
+    
     switch (answer.Trim())
     {
         case "1":
-
+            MembersMenu();
+            break;
         case "2":
 
         case "0":
