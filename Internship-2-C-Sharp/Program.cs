@@ -1,4 +1,6 @@
-﻿    var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
+﻿Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+var Members = new Dictionary<int, (string Name, string Surname, DateTime DateOfBirth, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> Loans)>
 {
      { 1, ("Ivo", "Ivić", new DateTime(2000, 5, 1), new()
         {
@@ -15,6 +17,7 @@
 };
 
 int lastMemberID = 3;
+int lastRentID = 3;
 
 static int DaysLate(DateTime dateBorrowed, DateTime? dateReturned)
 {
@@ -364,7 +367,178 @@ void MembersMenu()
 }
 
 
-while(true)
+void AddRent()
+{
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+    foreach (var (id, m) in Members)
+    {
+        Console.WriteLine($"{id,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+    }
+    Console.WriteLine("Upiši ID korisnika kojemu želite dodati novu posudbu.");
+    if(!int.TryParse(Console.ReadLine(), out int inputID) || !Members.ContainsKey(inputID))
+    {
+        Console.WriteLine("Neispravan unos");
+        return;  
+    }
+
+    var member=Members[inputID];
+
+    Console.WriteLine("Unesi naslov knjige");
+    string bookName = Console.ReadLine().Trim();
+    while(string.IsNullOrWhiteSpace(bookName))
+    {
+        Console.WriteLine("Neispravan unos");
+        bookName = Console.ReadLine().Trim();
+    }
+
+    Console.WriteLine("Unesi autora knjige");
+    string bookAuthor = Console.ReadLine().Trim();
+    while(string.IsNullOrWhiteSpace(bookAuthor))
+    {
+        Console.WriteLine("Neispravan unos");
+        bookAuthor = Console.ReadLine().Trim();
+    }
+
+    Console.WriteLine("Unesi datum posudbe (DD.MM.YYYY)");
+    DateTime dateRent;
+    string input = Console.ReadLine().Trim();
+    while(!DateTime.TryParse(input, out dateRent) || dateRent > DateTime.Today)
+    {
+        Console.WriteLine("Krivi unos, unesi ponovo");
+        input = Console.ReadLine();
+        
+    }
+
+    lastRentID++;
+    
+    member.Loans.Add((lastRentID,bookName, bookAuthor, dateRent, null));
+
+    Console.WriteLine($"Korisnik mora vratiti knjigu do {dateRent.AddDays(21):dd.MM.yyyy}");
+    Console.ReadKey();
+
+}
+
+void BookReturn()
+{
+
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+    foreach (var (id, m) in Members)
+    {
+        Console.WriteLine($"{id,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+    }
+    Console.WriteLine("Upiši ID korisnika kojemu želite ispuniti povratak knjige.");
+    if (!int.TryParse(Console.ReadLine(), out int inputID) || !Members.ContainsKey(inputID))
+    {
+        Console.WriteLine("Neispravan unos");
+        return;
+    }
+
+    var member = Members[inputID];
+    if (member.Loans.Count == 0)
+    {
+        Console.WriteLine("Član nema posudbi.");
+        Console.ReadKey();
+        return;
+    }
+
+    Console.WriteLine($"{"ID",-5}{"Naslov",-25}{"Autor",-22}{"Posuđeno",-12}{"Vraćeno",-14}{"Kašnjenje",-11}{"Zakasnina"}");
+
+    foreach (var rent in member.Loans)
+    {
+        string returned = rent.DateOfReturn?.ToString("dd.MM.yyyy") ?? "nije vraćeno";
+        int daysLate = DaysLate(rent.DateBorrowed, rent.DateOfReturn);
+
+        Console.WriteLine($"{rent.ID,-5}{rent.Title,-25}{rent.Author,-22}{rent.DateBorrowed,-12:dd.MM.yyyy}{returned,-14}{daysLate,-11}{LateFee(daysLate):F2} €");
+    }
+
+    Console.WriteLine("Unesi ID posudbe:");
+    int loanIndex = -1;
+
+    while (loanIndex == -1)
+    {
+        if (int.TryParse(Console.ReadLine(), out int bookID))
+        {
+            for (int i = 0; i < member.Loans.Count; i++)
+            {
+                if (member.Loans[i].ID == bookID)
+                {
+                    loanIndex = i;
+                    break;
+                }
+            }
+        }
+        if (loanIndex == -1)
+            Console.WriteLine("Neispravan unos, unesi ponovo:");
+    }
+    var loan = member.Loans[loanIndex];
+
+    if (loan.DateOfReturn != null)
+    {
+        Console.WriteLine($"Knjiga je vec vracena {loan.DateOfReturn.Value:dd.MM.yyyy}");
+        Console.ReadKey();
+        return;
+    }
+
+    Console.WriteLine("Unesi datum povratka knjige (DD.MM.YYYY)");
+    string inputDate=Console.ReadLine().Trim();
+    DateTime returnDate;
+    while(!DateTime.TryParse(inputDate, out returnDate) || returnDate > DateTime.Today || returnDate < loan.DateBorrowed.Date)
+    {
+        Console.WriteLine("Neispravan unos");
+        inputDate = Console.ReadLine().Trim();
+    }
+
+    member.Loans[loanIndex] = (loan.ID, loan.Title,loan.Author, loan.DateBorrowed, returnDate);
+    int lateDays = DaysLate(loan.DateBorrowed, returnDate);
+
+    Console.WriteLine($"Knjiga vraćena. Dana kašnjenja: {lateDays}, zakasnina: {lateDays*0.5:F2} €");
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
+
+
+
+
+
+void RentMenu()
+{
+    Console.Clear();
+    Console.WriteLine("1 - Unos nove posudbe\n2 - Vraćanje knjige\n3 - Brisanje posudbe\n4 - Uređivanje postojeće posudbe\n5 - Pregled svih posudbi\n6 - Izvještaji i analize\n0 - Izlaz");
+    string answer = Console.ReadLine();
+
+    switch (answer.Trim())
+    {
+        case "1":
+            AddRent();
+            break;
+        case "2":
+            BookReturn();
+            break;
+        case "3":
+            
+            break;
+        case "4":
+            
+            break;
+        case "5":
+
+            break;
+        case "6":
+
+            break;
+        case "0":
+            return;
+        default: Console.WriteLine("Neispravan unos"); break;
+    }
+
+
+}
+
+
+while (true)
 {
     Console.Clear();
     Console.WriteLine("1 - Članovi\n2 - Posudbe\n0 - Izlaz iz aplikacije");
@@ -376,7 +550,8 @@ while(true)
             MembersMenu();
             break;
         case "2":
-
+            RentMenu();
+            break;
         case "0":
             return;
         default: Console.WriteLine("Neispravan unos"); break;
