@@ -571,6 +571,87 @@ void DeleteRent()
 }
 
 
+void DeleteReturnedRents()
+{
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+    foreach (var (id, m) in Members)
+        Console.WriteLine($"{id,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+
+    Console.WriteLine("Upiši ID člana kojemu želite izbrisati vraćene posudbe:");
+    if (!int.TryParse(Console.ReadLine(), out int inputID) || !Members.ContainsKey(inputID))
+    {
+        Console.WriteLine("Neispravan unos");
+        Console.ReadKey();
+        return;
+    }
+
+    var loans = Members[inputID].Loans;
+    int removed = 0;
+
+    for (int i = loans.Count - 1; i >= 0; i--)
+    {
+        if (loans[i].DateOfReturn != null)
+        {
+            loans.RemoveAt(i);
+            removed++;
+        }
+    }
+
+    Console.WriteLine($"Obrisano vraćenih posudbi: {removed}");
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
+void DeleteRentsByLateFee()
+{
+    Console.WriteLine("Unesi iznos zakasnine (2,50):");
+    double amount;
+    while (!double.TryParse(Console.ReadLine(), out amount) || amount < 0)
+        Console.WriteLine("Neispravan iznos, unesi ponovo:");
+
+    int removed = 0;
+    foreach (var (id, m) in Members)
+    {
+        for (int i = m.Loans.Count - 1; i >= 0; i--)
+        {
+            var loan = m.Loans[i];
+            if (LateFee(DaysLate(loan.DateBorrowed, loan.DateOfReturn)) > amount)
+            {
+                m.Loans.RemoveAt(i);
+                removed++;
+            }
+        }
+    }
+
+    Console.WriteLine($"Obrisano posudbi sa zakasninom većom od {amount:F2} €: {removed}");
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
+void DeleteRentMenu()
+{
+    Console.Clear();
+    Console.WriteLine("1 - Brisanje po ID-u posudbe\n2 - Brisanje svih vraćenih posudbi člana\n3 - Brisanje posudbi sa zakasninom većom od iznosa\n0 - Povratak");
+
+    switch (Console.ReadLine()?.Trim())
+    {
+        case "1":
+            DeleteRent();
+            break;
+        case "2":
+            DeleteReturnedRents();
+            break;
+        case "3":
+            DeleteRentsByLateFee();
+            break;
+        case "0":
+            return;
+        default:
+            Console.WriteLine("Neispravan unos");
+            Console.ReadKey();
+            break;
+    }
+}
 
 void RentMenu()
 {
@@ -587,7 +668,7 @@ void RentMenu()
             BookReturn();
             break;
         case "3":
-            DeleteRent();
+            DeleteRentMenu();
             break;
         case "4":
             
