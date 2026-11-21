@@ -150,6 +150,19 @@ void RemoveMember()
 
 void EditMember()
 {
+    if (Members.Count == 0)
+    {
+        Console.WriteLine("Nema članova.");
+        Console.WriteLine("Pritisnite bilo koju tipku za izlazak");
+        Console.ReadKey();
+        return;
+    }
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+    foreach (var (mid, m) in Members)
+    {
+        Console.WriteLine($"{mid,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+    }
     Console.WriteLine("Unesi ID korisnika");
     if(!int.TryParse(Console.ReadLine(), out int id) || !Members.ContainsKey(id))
     {
@@ -159,7 +172,7 @@ void EditMember()
     var member = Members[id];
 
     Console.WriteLine($"Uređuješ: {member.Name} {member.Surname}, rođen {member.DateOfBirth:dd.MM.yyyy}");
-    Console.WriteLine("Želite li uređivati: 1 - Ime\n2 - Prezime\n3 - Datum rođenja\n0 - Odustani");
+    Console.WriteLine("Želite li uređivati:\n1 - Ime\n2 - Prezime\n3 - Datum rođenja\n0 - Odustani");
     string answer=Console.ReadLine().Trim();
 
     switch (answer)
@@ -653,6 +666,133 @@ void DeleteRentMenu()
     }
 }
 
+
+void EditRent()
+{
+
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
+
+    foreach (var (id, m) in Members)
+    {
+        Console.WriteLine($"{id,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+    }
+    Console.WriteLine("Upiši ID korisnika kojemu želite urediti posudbu.");
+    if (!int.TryParse(Console.ReadLine(), out int inputID) || !Members.ContainsKey(inputID))
+    {
+        Console.WriteLine("Neispravan unos");
+        Console.ReadKey();
+        return;
+    }
+
+    var member = Members[inputID];
+    if (member.Loans.Count == 0)
+    {
+        Console.WriteLine("Član nema posudbi.");
+        Console.ReadKey();
+        return;
+    }
+
+    Console.WriteLine($"{"ID",-5}{"Naslov",-25}{"Autor",-22}{"Posuđeno",-12}{"Vraćeno",-14}{"Kašnjenje",-11}{"Zakasnina"}");
+
+    foreach (var rent in member.Loans)
+    {
+        string returned = rent.DateOfReturn?.ToString("dd.MM.yyyy") ?? "nije vraćeno";
+        int daysLate = DaysLate(rent.DateBorrowed, rent.DateOfReturn);
+
+        Console.WriteLine($"{rent.ID,-5}{rent.Title,-25}{rent.Author,-22}{rent.DateBorrowed,-12:dd.MM.yyyy}{returned,-14}{daysLate,-11}{LateFee(daysLate):F2} €");
+    }
+
+    Console.WriteLine("Unesi ID posudbe:");
+    int loanIndex = -1;
+
+    while (loanIndex == -1)
+    {
+        if (int.TryParse(Console.ReadLine(), out int bookID))
+        {
+            for (int i = 0; i < member.Loans.Count; i++)
+            {
+                if (member.Loans[i].ID == bookID)
+                {
+                    loanIndex = i;
+                    break;
+                }
+            }
+        }
+        if (loanIndex == -1)
+            Console.WriteLine("Neispravan unos, unesi ponovo:");
+    }
+    var loan = member.Loans[loanIndex];
+    Console.WriteLine("Što želite urediti?\n1 - Naslov\n2 - Autor\n3 - Datum posudbe\n4 - Datum vraćanja\n0 - Odustani");
+
+    switch (Console.ReadLine()?.Trim())
+    {
+        case "1":
+            Console.WriteLine("Unesi novi naslov:");
+            string title = Console.ReadLine();
+            while (string.IsNullOrWhiteSpace(title))
+            {
+                Console.WriteLine("Naslov ne smije biti prazan, unesi ponovo:");
+                title = Console.ReadLine();
+            }
+            loan.Title = title.Trim();
+            break;
+
+        case "2":
+            Console.WriteLine("Unesi novog autora:");
+            string author = Console.ReadLine();
+            while (string.IsNullOrWhiteSpace(author))
+            {
+                Console.WriteLine("Autor ne smije biti prazan, unesi ponovo:");
+                author = Console.ReadLine();
+            }
+            loan.Author = author.Trim();
+            break;
+
+        case "3":
+            DateTime latestBorrow = loan.DateOfReturn ?? DateTime.Today;
+            Console.WriteLine("Unesi novi datum posudbe (dd.MM.yyyy):");
+            DateTime newBorrowed;
+            while (!DateTime.TryParse(Console.ReadLine(), out newBorrowed) || newBorrowed > latestBorrow)
+                Console.WriteLine($"Neispravan datum, ne smije biti nakon {latestBorrow:dd.MM.yyyy}. Unesi ponovo:");
+            loan.DateBorrowed = newBorrowed;
+            break;
+
+        case "4":
+            Console.WriteLine("Unesi novi datum vraćanja (dd.mm.yyyy) ili prazno ako knjiga nije vraćena:");
+            while (true)
+            {
+                string input = Console.ReadLine()?.Trim();
+                if (string.IsNullOrEmpty(input))
+                {
+                    loan.DateOfReturn = null;
+                    break;
+                }
+                if (DateTime.TryParse(input, out DateTime newReturn) && newReturn >= loan.DateBorrowed.Date && newReturn <= DateTime.Today)
+                {
+                    loan.DateOfReturn = newReturn;
+                    break;
+                }
+                Console.WriteLine($"Neispravan datum, mora biti između {loan.DateBorrowed:dd.MM.yyyy} i {DateTime.Today:dd.MM.yyyy}. Unesi ponovo:");
+            }
+            break;
+
+        case "0":
+            return;
+
+        default:
+            Console.WriteLine("Neispravan unos");
+            Console.ReadKey();
+            return;
+    }
+
+    member.Loans[loanIndex] = loan;
+
+    int lateDays = DaysLate(loan.DateBorrowed, loan.DateOfReturn);
+    Console.WriteLine($"Posudba ažurirana. Dana kašnjenja: {lateDays}, zakasnina: {LateFee(lateDays):F2} €");
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
 void RentMenu()
 {
     Console.Clear();
@@ -671,7 +811,7 @@ void RentMenu()
             DeleteRentMenu();
             break;
         case "4":
-            
+            EditRent();
             break;
         case "5":
 
