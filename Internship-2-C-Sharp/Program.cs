@@ -793,6 +793,189 @@ void EditRent()
     Console.ReadKey();
 }
 
+List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> GetAllRents()
+{
+    var all = new List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)>();
+    foreach (var (id, m) in Members)
+    {
+        foreach (var loan in m.Loans)
+            all.Add(loan);
+    }
+    return all;
+}
+
+static double RentFee((int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn) loan)
+{
+    return LateFee(DaysLate(loan.DateBorrowed, loan.DateOfReturn));
+}
+
+static string FormatRent((int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn) loan)
+{
+    string returned = loan.DateOfReturn?.ToString("yyyy-MM-dd") ?? "nije vraćeno";
+    int daysLate = DaysLate(loan.DateBorrowed, loan.DateOfReturn);
+    return $"[{loan.ID}] \"{loan.Title}\" - {loan.Author} | posuđeno: {loan.DateBorrowed:yyyy-MM-dd} | vraćeno: {returned} | kašnjenje: {daysLate} dana | zakasnina: {LateFee(daysLate):F2} €";
+}
+
+static void PrintRentList(List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)> rents)
+{
+    if (rents.Count == 0)
+    {
+        Console.WriteLine("Nema posudbi.");
+        return;
+    }
+    foreach (var loan in rents)
+        Console.WriteLine(FormatRent(loan));
+}
+
+static bool AskAscending()
+{
+    Console.WriteLine("1 - Uzlazno\n2 - Silazno");
+    while (true)
+    {
+        string input = Console.ReadLine()?.Trim();
+        if (input == "1") return true;
+        if (input == "2") return false;
+        Console.WriteLine("Neispravan unos, unesi 1 ili 2:");
+    }
+}
+
+void PrintAllRents()
+{
+    PrintRentList(GetAllRents());
+}
+
+void PrintRentsByDate()
+{
+    var rents = GetAllRents();
+    bool ascending = AskAscending();
+
+    rents.Sort((a, b) => a.DateBorrowed.CompareTo(b.DateBorrowed));
+    if (!ascending)
+        rents.Reverse();
+
+    PrintRentList(rents);
+}
+
+void PrintRentsByFee()
+{
+    var rents = GetAllRents();
+    bool ascending = AskAscending();
+
+    rents.Sort((a, b) => RentFee(a).CompareTo(RentFee(b)));
+    if (!ascending)
+        rents.Reverse();
+
+    PrintRentList(rents);
+}
+
+void PrintUnreturnedRents()
+{
+    int count = 0;
+    foreach (var (id, m) in Members)
+    {
+        foreach (var loan in m.Loans)
+        {
+            if (loan.DateOfReturn == null)
+            {
+                Console.WriteLine($"{FormatRent(loan)} | član: {m.Name} {m.Surname}");
+                count++;
+            }
+        }
+    }
+
+    if (count == 0)
+        Console.WriteLine("Nema nevraćenih posudbi.");
+}
+
+void SearchRents()
+{
+    Console.WriteLine("Unesi dio naslova ili autora:");
+    string term = Console.ReadLine();
+    while (string.IsNullOrWhiteSpace(term))
+    {
+        Console.WriteLine("Pojam ne smije biti prazan, unesi ponovo:");
+        term = Console.ReadLine();
+    }
+    string termLower = term.Trim().ToLower();
+
+    var found = new List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)>();
+    foreach (var loan in GetAllRents())
+    {
+        if (loan.Title.ToLower().Contains(termLower) || loan.Author.ToLower().Contains(termLower))
+            found.Add(loan);
+    }
+
+    PrintRentList(found);
+}
+void PrintRentsByMonth()
+{
+    var groups = new Dictionary<string, List<(int ID, string Title, string Author, DateTime DateBorrowed, DateTime? DateOfReturn)>>();
+    foreach (var loan in GetAllRents())
+    {
+        string month = loan.DateBorrowed.ToString("yyyy-MM");
+        if (!groups.ContainsKey(month))
+            groups[month] = new();
+        groups[month].Add(loan);
+    }
+
+    if (groups.Count == 0)
+    {
+        Console.WriteLine("Nema posudbi.");
+        return;
+    }
+
+    var months = new List<string>(groups.Keys);
+    months.Sort();
+
+    foreach (string month in months)
+    {
+        double totalFee = 0;
+        foreach (var loan in groups[month])
+            totalFee += RentFee(loan);
+
+        Console.WriteLine($"\n{month} | broj posudbi: {groups[month].Count} | ukupna zakasnina: {totalFee:F2} €");
+        foreach (var loan in groups[month])
+            Console.WriteLine("   " + FormatRent(loan));
+    }
+}
+
+void PrintRentsMenu()
+{
+    Console.Clear();
+    Console.WriteLine("1 - Sve posudbe\n2 - Sortirano po datumu posudbe\n3 - Sortirano po zakasnini\n4 - Nevraćene posudbe\n5 - Pretraga po naslovu ili autoru\n6 - Grupirano po mjesecu\n0 - Povratak");
+
+    switch (Console.ReadLine()?.Trim())
+    {
+        case "1": 
+            PrintAllRents(); 
+            break;
+        case "2": 
+            PrintRentsByDate(); 
+            break;
+        case "3": 
+            PrintRentsByFee(); 
+            break;
+        case "4": 
+            PrintUnreturnedRents(); 
+            break;
+        case "5": 
+            SearchRents(); 
+            break;
+        case "6": 
+            PrintRentsByMonth(); 
+            break;
+        case "0": 
+            return;
+        default: Console.WriteLine("Neispravan unos"); break;
+    }
+
+    Console.WriteLine("\nPritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
+
+
+
 void RentMenu()
 {
     Console.Clear();
@@ -814,7 +997,7 @@ void RentMenu()
             EditRent();
             break;
         case "5":
-
+            PrintRentsMenu();
             break;
         case "6":
 
