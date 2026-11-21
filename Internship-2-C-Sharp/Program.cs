@@ -499,7 +499,76 @@ void BookReturn()
 }
 
 
+void DeleteRent()
+{
+    Console.WriteLine($"{"ID",-5}{"Prezime",-15}{"Ime",-15}{"Godine",-8}{"Broj posudbi"}");
 
+    foreach (var (id, m) in Members)
+    {
+        Console.WriteLine($"{id,-5}{m.Surname,-15}{m.Name,-15}{CalculateAge(m.DateOfBirth),-8}{m.Loans.Count}");
+    }
+    Console.WriteLine("Upiši ID korisnika kojemu želite izbrisati posudbu.");
+    if (!int.TryParse(Console.ReadLine(), out int inputID) || !Members.ContainsKey(inputID))
+    {
+        Console.WriteLine("Neispravan unos");
+        Console.ReadKey();
+        return;
+    }
+
+    var member = Members[inputID];
+    if (member.Loans.Count == 0)
+    {
+        Console.WriteLine("Član nema posudbi.");
+        Console.ReadKey();
+        return;
+    }
+
+    Console.WriteLine($"{"ID",-5}{"Naslov",-25}{"Autor",-22}{"Posuđeno",-12}{"Vraćeno",-14}{"Kašnjenje",-11}{"Zakasnina"}");
+
+    foreach (var rent in member.Loans)
+    {
+        string returned = rent.DateOfReturn?.ToString("dd.MM.yyyy") ?? "nije vraćeno";
+        int daysLate = DaysLate(rent.DateBorrowed, rent.DateOfReturn);
+
+        Console.WriteLine($"{rent.ID,-5}{rent.Title,-25}{rent.Author,-22}{rent.DateBorrowed,-12:dd.MM.yyyy}{returned,-14}{daysLate,-11}{LateFee(daysLate):F2} €");
+    }
+
+    Console.WriteLine("Unesi ID posudbe:");
+    int loanIndex = -1;
+
+    while (loanIndex == -1)
+    {
+        if (int.TryParse(Console.ReadLine(), out int bookID))
+        {
+            for (int i = 0; i < member.Loans.Count; i++)
+            {
+                if (member.Loans[i].ID == bookID)
+                {
+                    loanIndex = i;
+                    break;
+                }
+            }
+        }
+        if (loanIndex == -1)
+            Console.WriteLine("Neispravan unos, unesi ponovo:");
+    }
+    var loan = member.Loans[loanIndex];
+
+    Console.WriteLine($"Jeste li sigurni da zelite izbrisati posudbu | {loan.Title}, {loan.Author} | DA/NE");
+    if (Console.ReadLine()?.Trim().ToLower() == "da")
+    {
+        member.Loans.RemoveAt(loanIndex);
+        Console.WriteLine("Posudba obrisana.");
+    }
+    else
+    {
+        Console.WriteLine("Brisanje otkazano.");
+    }
+
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+
+}
 
 
 
@@ -518,7 +587,7 @@ void RentMenu()
             BookReturn();
             break;
         case "3":
-            
+            DeleteRent();
             break;
         case "4":
             
